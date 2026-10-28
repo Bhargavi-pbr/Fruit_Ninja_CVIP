@@ -1,0 +1,20 @@
+{
+  "name": "fruit-ninja-cvip",
+  "version": "1.0.0",
+  "description": "Fruit Ninja Game Through Real-Time Hand Gestures (CVIP Project)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "cvip",
+    "fruit-ninja",
+    "computer-vision",
+    "hand-tracking",
+    "mediapipe",
+    "gesture-recognition",
+    "opencv"
+  ],
+  "author": "Bhargavi Reddy",
+  "license": "MIT"
+}

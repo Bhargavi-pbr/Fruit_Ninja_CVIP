@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fruit Ninja CVIP | Real-Time Hand Gesture Vision System</title>
+
+  <!-- Modern Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <!-- KaTeX for Mathematical Formulations -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Google MediaPipe Hands & Camera Utils -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="css/fruitNinja.css">
+</head>
+<body>
+
+  <!-- ================= Application Header ================= -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-icon">
+        <i data-lucide="swords"></i>
+      </div>
+      <div class="brand-info">
+        <h1>Fruit Ninja CVIP</h1>
+        <span>Real-Time Hand Gesture Computer Vision System</span>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button id="btnToggleCamera" class="hdr-btn">
+        <i data-lucide="video"></i> Camera: Connecting...
+      </button>
+
+      <button id="btnToggleAudio" class="hdr-btn active">
+        <i data-lucide="volume-2"></i> Sound: ON
+      </button>
+
+      <button id="btnOpenStudio" class="hdr-btn">
+        <i data-lucide="scan-eye"></i> CVIP Vision Studio
+      </button>
+    </div>
+  </header>
+
+  <!-- ================= Main Game Area ================= -->
+  <main class="main-viewport">
+
+    <div class="game-stage-wrapper">
+      <!-- Main Game Canvas -->
+      <canvas id="gameCanvas"></canvas>
+
+      <!-- Hidden Video Element for MediaPipe Frame Ingestion -->
+      <video id="webcamVideo" class="vision-hidden" playsinline muted></video>
+
+      <!-- Picture-in-Picture Webcam Mirror -->
+      <div class="pip-webcam-preview hidden">
+        <div class="pip-label">WEBCAM SKELETON</div>
+        <video id="pipVideo" autoplay playsinline muted></video>
+      </div>
+
+      <!-- Live Game HUD Overlay -->
+      <div class="game-hud">
+        <!-- HUD Left: Score and High Score -->
+        <div class="hud-left">
+          <div class="score-panel">
+            <span class="score-label">Score</span>
+            <span id="hudScore" class="score-value">0</span>
+          </div>
+          <div class="highscore-badge">
+            <i data-lucide="trophy" style="width:14px; height:14px; color:#ffb300;"></i>
+            BEST: <span id="hudHighScore">0</span>
+          </div>
+        </div>
+
+        <!-- HUD Center: Gesture & Tracking Status -->
+        <div class="hud-center">
+          <div class="badge-row">
+            <div id="gestureBadge" class="badge badge-idle">Tracking...</div>
+            <div id="trackingBadge" class="badge badge-blade">Webcam Ready</div>
+          </div>
+        </div>
+
+        <!-- HUD Right: Lives or Timer -->
+        <div class="hud-right">
+          <div id="hudLivesContainer" class="lives-container">
+            <span class="life-star active">★</span>
+            <span class="life-star active">★</span>
+            <span class="life-star active">★</span>
+          </div>
+          <div id="hudTimerContainer" class="timer-box" style="display:none;">
+            <i data-lucide="timer" style="width:20px; height:20px;"></i>
+            <span id="hudTimer">60s</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= Menu Screen Overlay ================= -->
+      <div id="menuOverlay" class="stage-overlay">
+        <div class="overlay-content">
+          <h1 class="game-title">FRUIT NINJA CVIP</h1>
+          <p class="game-subtitle">Gesture-Controlled Dojo with Real-Time Computer Vision Tracking</p>
+
+          <!-- Mode Selector -->
+          <div class="mode-selector">
+            <button class="mode-btn active" data-mode="classic">Classic (3 Lives)</button>
+            <button class="mode-btn" data-mode="arcade">Arcade (60s Frenzy)</button>
+            <button class="mode-btn" data-mode="zen">Zen (90s Pure)</button>
+          </div>
+
+          <!-- Katana Theme Selector -->
+          <div class="theme-selector">
+            <span>Katana Blade:</span>
+            <button class="theme-btn theme-cyan active" data-theme="cyan" title="Ninja Cyan"></button>
+            <button class="theme-btn theme-crimson" data-theme="crimson" title="Katana Crimson"></button>
+            <button class="theme-btn theme-emerald" data-theme="emerald" title="Jade Emerald"></button>
+            <button class="theme-btn theme-gold" data-theme="gold" title="Golden Dragon"></button>
+          </div>
+
+          <!-- Gesture Reference Card -->
+          <div class="gesture-instructions">
+            <div class="instruction-row">
+              <span class="instruction-key">☝️</span>
+              <span><strong>Point Index Finger</strong> &amp; swipe swiftly to slash fruits</span>
+            </div>
+            <div class="instruction-row">
+              <span class="instruction-key">✊</span>
+              <span><strong>Clench Fist</strong> into shield to defuse bombs safely without exploding</span>
+            </div>
+            <div class="instruction-row">
+              <span class="instruction-key">🖐️</span>
+              <span><strong>Open Palm</strong> to trigger Dojo Focus / Time Dilation (Freeze)</span>
+            </div>
+            <div class="instruction-row">
+              <span class="instruction-key">👍</span>
+              <span><strong>Thumbs Up</strong> to start or restart hands-free without keyboard/mouse!</span>
+            </div>
+          </div>
+
+          <button id="btnStartGame" class="cta-button">
+            <i data-lucide="play"></i> ENTER DOJO
+          </button>
+
+          <div class="touchless-hint">
+            <i data-lucide="sparkles" style="width:14px; height:14px;"></i>
+            Or show 👍 (Thumbs Up) to camera to start touchlessly!
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= Game Over Overlay ================= -->
+      <div id="gameOverOverlay" class="stage-overlay hidden">
+        <div class="overlay-content">
+          <h1 class="game-title" style="background: linear-gradient(135deg, #ff1744 0%, #ff8a65 100%); -webkit-background-clip: text;">DOJO SESSION OVER</h1>
+
+          <div class="score-panel" style="padding: 0.6rem 2rem;">
+            <span class="score-label">Final Score</span>
+            <span id="finalScore" class="score-value" style="font-size: 3rem;">0</span>
+          </div>
+
+          <!-- Stats Grid -->
+          <div class="stats-grid">
+            <div class="stat-card">
+              <span id="statFruitsSliced" class="stat-value">0</span>
+              <span class="stat-label">Fruits Sliced</span>
+            </div>
+            <div class="stat-card">
+              <span id="statMaxCombo" class="stat-value">0x</span>
+              <span class="stat-label">Max Combo</span>
+            </div>
+            <div class="stat-card">
+              <span id="statAccuracy" class="stat-value">0%</span>
+              <span class="stat-label">Slicing Accuracy</span>
+            </div>
+            <div class="stat-card">
+              <span id="statBombsDefused" class="stat-value">0</span>
+              <span class="stat-label">Bombs Defused</span>
+            </div>
+          </div>
+
+          <button id="btnRestartGame" class="cta-button">
+            <i data-lucide="rotate-ccw"></i> PLAY AGAIN
+          </button>
+
+          <div class="touchless-hint">
+            <i data-lucide="sparkles" style="width:14px; height:14px;"></i>
+            Show 👍 (Thumbs Up) to camera to restart immediately!
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= Pause Overlay ================= -->
+      <div id="pauseOverlay" class="stage-overlay hidden">
+        <div class="overlay-content">
+          <h1 class="game-title">GAME PAUSED</h1>
+          <p class="game-subtitle">Press 'P' or click resume to return to the dojo</p>
+          <div style="display:flex; gap:1rem;">
+            <button id="btnResumeGame" class="cta-button">
+              <i data-lucide="play"></i> RESUME
+            </button>
+            <button id="btnQuitToMenu" class="hdr-btn" style="padding: 0.85rem 1.5rem; font-size:1rem;">
+              <i data-lucide="home"></i> MAIN MENU
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Telemetry Bar -->
+    <div class="bottom-telemetry-bar">
+      <div class="telemetry-item">
+        <i data-lucide="activity" style="width:16px; height:16px; color:#00f5a0;"></i>
+        <span>Pipeline Performance:</span>
+        <strong id="fpsCounter">60 FPS</strong>
+      </div>
+      <div class="telemetry-item">
+        <i data-lucide="target" style="width:16px; height:16px; color:#00f2fe;"></i>
+        <span>Tracker:</span>
+        <strong>MediaPipe Hands (21 3D Landmarks)</strong>
+      </div>
+      <div class="telemetry-item">
+        <i data-lucide="sparkle" style="width:16px; height:16px; color:#ffb300;"></i>
+        <span>Kinematic Filter:</span>
+        <strong>Exponential Moving Average (EMA &alpha; = 0.75)</strong>
+      </div>
+    </div>
+  </main>
+
+  <!-- ================= CVIP Vision Studio Modal ================= -->
+  <div id="studioModal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div style="display:flex; align-items:center; gap:0.6rem;">
+          <i data-lucide="scan-eye" style="color: #00f2fe;"></i>
+          <h2>Classical CVIP Pipeline Inspection Studio</h2>
+        </div>
+        <button id="btnCloseStudio" class="close-btn">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <p style="font-size:0.9rem; color: var(--text-muted);">
+          This real-time inspector visualizes the classical Computer Vision pipeline operating on webcam frames. It executes color-space skin segmentation, morphological noise cleaning, contour extraction, convex hull computation, and fingertip tracking.
+        </p>
+
+        <!-- Side-by-Side CVIP Canvas -->
+        <canvas id="cvipCanvas"></canvas>
+
+        <div class="theory-item">
+          <div class="theory-title">1. RGB to HSV Skin Tone Segmentation</div>
+          <div class="theory-desc">
+            The HSV color space separates chromaticity (Hue) from illumination (Value). Skin pixels are filtered using peer-reviewed boundaries:
+            <div class="math-block">
+              \[H \in [0^\circ, 28^\circ] \cup [335^\circ, 360^\circ], \quad S \in [35, 180], \quad V \in [50, 255]\]
+            </div>
+          </div>
+        </div>
+
+        <div class="theory-item">
+          <div class="theory-title">2. Morphological Filtering (Opening &amp; Closing)</div>
+          <div class="theory-desc">
+            Eliminates salt-and-pepper noise and bridges gaps in the binary palm mask:
+            <div class="math-block">
+              \[\text{Erosion: } (A \ominus B)(x,y) = \min_{(i,j) \in B} A(x+i, y+j)\]
+              \[\text{Dilation: } (A \oplus B)(x,y) = \max_{(i,j) \in B} A(x-i, y-j)\]
+              \[\text{Opening: } A \circ B = (A \ominus B) \oplus B \quad (\text{noise suppression})\]
+            </div>
+          </div>
+        </div>
+
+        <div class="theory-item">
+          <div class="theory-title">3. Slicing Collision Geometry: Line Segment to Circle</div>
+          <div class="theory-desc">
+            Computes whether blade segment \(P_1(x_1, y_1) \to P_2(x_2, y_2)\) cuts fruit circle \(C(x_c, y_c)\) of radius \(R\):
+            <div class="math-block">
+              \[t = \operatorname{clamp}\left(\frac{(C - P_1) \cdot (P_2 - P_1)}{\|P_2 - P_1\|^2}, \; 0, \; 1\right)\]
+              \[P_{\text{closest}} = P_1 + t(P_2 - P_1), \quad \text{Collision if } \|C - P_{\text{closest}}\| \le R\]
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+
+  <!-- Application Scripts -->
+  <script src="js/fruitNinja/soundEffects.js"></script>
+  <script src="js/fruitNinja/fruitRenderer.js"></script>
+  <script src="js/fruitNinja/handTracker.js"></script>
+  <script src="js/fruitNinja/cvipPipeline.js"></script>
+  <script src="js/fruitNinja/gameEngine.js"></script>
+  <script src="js/fruitNinja/fruitNinjaApp.js"></script>
+
+</body>
+</html>
