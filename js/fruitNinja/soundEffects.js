@@ -330,6 +330,82 @@ class SoundEffects {
     osc.start(now);
     osc.stop(now + 0.05);
   }
+
+  /**
+   * Level Complete celebratory fanfare
+   */
+  playLevelComplete() {
+    if (this.muted) return;
+    this.init();
+    if (!this.ctx) return;
+
+    const notes = [
+      { f: 523.25, d: 0.12 }, // C5
+      { f: 659.25, d: 0.12 }, // E5
+      { f: 783.99, d: 0.12 }, // G5
+      { f: 987.77, d: 0.16 }, // B5
+      { f: 1046.50, d: 0.45 } // C6
+    ];
+
+    let t = this.ctx.currentTime;
+    notes.forEach(note => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(note.f, t);
+
+      gain.gain.setValueAtTime(0.01, t);
+      gain.gain.linearRampToValueAtTime(0.28, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + note.d);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      osc.start(t);
+      osc.stop(t + note.d);
+      t += 0.10;
+    });
+  }
+
+  /**
+   * Grand Victory Master Fanfare
+   */
+  playVictory() {
+    if (this.muted) return;
+    this.init();
+    if (!this.ctx) return;
+
+    const melody = [
+      { f: 523.25, d: 0.15 }, // C5
+      { f: 523.25, d: 0.15 }, // C5
+      { f: 523.25, d: 0.15 }, // C5
+      { f: 659.25, d: 0.35 }, // E5
+      { f: 783.99, d: 0.20 }, // G5
+      { f: 659.25, d: 0.15 }, // E5
+      { f: 1046.50, d: 0.80 } // C6
+    ];
+
+    let t = this.ctx.currentTime;
+    melody.forEach(note => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(note.f, t);
+
+      gain.gain.setValueAtTime(0.01, t);
+      gain.gain.linearRampToValueAtTime(0.32, t + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + note.d);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      osc.start(t);
+      osc.stop(t + note.d);
+      t += note.d * 0.85;
+    });
+  }
 }
 
 // Export singleton instance

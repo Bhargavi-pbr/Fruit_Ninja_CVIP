@@ -675,3 +675,271 @@ body {
   font-family: var(--font-mono);
   overflow-x: auto;
 }
+
+/* ================= Level Progression & HUD Enhancements ================= */
+
+.level-hud-box {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: rgba(15, 8, 5, 0.75);
+  backdrop-filter: blur(10px);
+  padding: 0.35rem 0.9rem;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 242, 254, 0.25);
+}
+
+.level-badge-tag {
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--primary-cyan);
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-mono);
+}
+
+.level-target-tag {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--primary-gold);
+  border-left: 1px solid var(--border-glass);
+  padding-left: 0.6rem;
+}
+
+/* Level Completion Progress Bar */
+.level-progress-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  width: 100%;
+  min-width: 170px;
+}
+
+.progress-header-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.level-progress-track {
+  width: 100%;
+  height: 7px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.level-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #00f5a0 0%, #00f2fe 100%);
+  border-radius: 4px;
+  box-shadow: 0 0 10px rgba(0, 245, 160, 0.6);
+  transition: width 0.35s ease;
+}
+
+/* Additional HUD badges */
+.badge-speed {
+  background: rgba(255, 179, 0, 0.18);
+  color: var(--primary-gold);
+  border-color: rgba(255, 179, 0, 0.4);
+}
+
+.badge-sens {
+  background: rgba(178, 36, 239, 0.18);
+  color: #d8b4fe;
+  border-color: rgba(178, 36, 239, 0.4);
+}
+
+/* Settings Row & Pill Selectors */
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 0.75rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.setting-label {
+  font-weight: 600;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.pill-group {
+  display: flex;
+  gap: 0.35rem;
+  background: rgba(20, 10, 6, 0.7);
+  padding: 0.25rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-glass);
+}
+
+.pill-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pill-btn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.pill-btn.active {
+  background: var(--primary-cyan);
+  color: #0b101b;
+  box-shadow: 0 2px 8px rgba(0, 242, 254, 0.4);
+}
+
+/* ================= Level Selection Overlay ================= */
+.levels-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.75rem;
+  width: 100%;
+  margin: 0.5rem 0;
+}
+
+@media (max-width: 768px) {
+  .levels-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.level-card {
+  background: rgba(30, 18, 14, 0.75);
+  border: 1px solid var(--border-glass);
+  border-radius: 12px;
+  padding: 0.85rem 0.6rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
+  text-align: center;
+}
+
+.level-card.unlocked:hover {
+  transform: translateY(-3px) scale(1.02);
+  border-color: var(--primary-cyan);
+  box-shadow: 0 8px 20px rgba(0, 242, 254, 0.3);
+  background: rgba(45, 26, 18, 0.9);
+}
+
+.level-card.current {
+  border-color: var(--primary-gold);
+  box-shadow: 0 0 16px rgba(255, 179, 0, 0.4);
+}
+
+.level-card.locked {
+  opacity: 0.45;
+  cursor: not-allowed;
+  filter: grayscale(0.8);
+}
+
+.level-number-badge {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+  color: #000;
+  font-weight: 900;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.level-card.locked .level-number-badge {
+  background: #333;
+  color: #888;
+}
+
+.level-card-name {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #fff;
+}
+
+.level-target-label {
+  font-size: 0.68rem;
+  color: var(--primary-gold);
+  font-family: var(--font-mono);
+}
+
+.level-best-label {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+}
+
+.level-status-pill {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 10px;
+  margin-top: 0.2rem;
+  text-transform: uppercase;
+}
+
+.level-status-pill.play {
+  background: rgba(0, 245, 160, 0.2);
+  color: var(--primary-green);
+  border: 1px solid var(--primary-green);
+}
+
+.level-status-pill.locked {
+  background: rgba(255, 255, 255, 0.08);
+  color: #888;
+}
+
+/* Secondary Button style */
+.btn-secondary {
+  background: rgba(40, 25, 20, 0.8);
+  border: 1px solid var(--border-glass);
+  color: var(--text-main);
+  padding: 0.75rem 1.6rem;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background: rgba(60, 38, 30, 0.9);
+  border-color: rgba(255, 200, 150, 0.4);
+  transform: translateY(-1px);
+}
+
+/* Victory Overlay Master styling */
+.victory-trophy {
+  font-size: 4rem;
+  animation: trophyFloat 2s ease-in-out infinite;
+  text-shadow: 0 0 30px rgba(255, 179, 0, 0.8);
+}
+
+@keyframes trophyFloat {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-8px) scale(1.06); }
+}

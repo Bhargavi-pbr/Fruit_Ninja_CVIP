@@ -1,6 +1,6 @@
 /**
- * Smart Desk CVIP - Zero Dependency Local HTTP Server
- * Serves static web assets, APIs, and provides local hosting.
+ * Fruit Ninja CVIP - Zero Dependency Local HTTP Server
+ * Serves static web assets, APIs, and provides local hosting for the Hand Gesture Game.
  */
 
 const http = require('http');
@@ -54,7 +54,7 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       status: 'online',
-      system: 'Smart Desk Object Detection & Monitoring System',
+      system: 'Fruit Ninja CVIP Hand Gesture Game',
       version: '2.0.0',
       timestamp: new Date().toISOString()
     }));
@@ -93,7 +93,7 @@ const server = http.createServer((req, res) => {
 
 server.listen(PORT, '127.0.0.1', () => {
   console.log(`=======================================================`);
-  console.log(` Smart Desk CVIP Monitoring System running successfully!`);
+  console.log(` Fruit Ninja CVIP Hand Gesture Game running successfully!`);
   console.log(` Open in browser: http://localhost:${PORT}`);
   console.log(`=======================================================`);
 });

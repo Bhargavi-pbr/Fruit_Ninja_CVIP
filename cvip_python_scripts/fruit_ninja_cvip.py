@@ -20,10 +20,10 @@ import time
 # --- Configuration & Hyperparameters ---
 FRAME_WIDTH = 1280
 FRAME_HEIGHT = 720
-GRAVITY = 750  # px/s^2
-MIN_SLICE_VELOCITY = 260  # px/s required for a valid cut
-SMOOTHING_ALPHA = 0.75  # EMA smoothing factor
-MAX_TRAIL_LEN = 12
+GRAVITY = 460  # Calibrated for smooth, floaty arc trajectories (px/s^2)
+MIN_SLICE_VELOCITY = 150  # px/s required for a valid cut (responsive for hand gestures)
+SMOOTHING_ALPHA = 0.55  # Adaptive EMA smoothing factor
+MAX_TRAIL_LEN = 14
 
 # Color Palette (BGR for OpenCV)
 COLOR_BG = (18, 12, 10)

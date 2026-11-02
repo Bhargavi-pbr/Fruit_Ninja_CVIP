@@ -72,23 +72,43 @@
 
       <!-- Live Game HUD Overlay -->
       <div class="game-hud">
-        <!-- HUD Left: Score and High Score -->
+        <!-- HUD Left: Score, Target, Level Badge & Progress Bar -->
         <div class="hud-left">
-          <div class="score-panel">
-            <span class="score-label">Score</span>
-            <span id="hudScore" class="score-value">0</span>
+          <div style="display: flex; align-items: center; gap: 0.6rem;">
+            <div class="score-panel">
+              <span class="score-label">Score</span>
+              <span id="hudScore" class="score-value">0</span>
+              <span id="hudTargetScore" class="level-target-tag">/ 15</span>
+            </div>
+            <div class="level-hud-box" id="hudLevelBox">
+              <span id="hudLevelBadge" class="level-badge-tag"><i data-lucide="shield" style="width:14px; height:14px;"></i> LEVEL 1: BEGINNER</span>
+            </div>
           </div>
+
+          <!-- Level Completion Progress Bar -->
+          <div class="level-progress-wrapper" id="hudProgressWrapper">
+            <div class="progress-header-row">
+              <span>LEVEL PROGRESS</span>
+              <span id="hudProgressPercent">0%</span>
+            </div>
+            <div class="level-progress-track">
+              <div id="hudProgressFill" class="level-progress-fill"></div>
+            </div>
+          </div>
+
           <div class="highscore-badge">
             <i data-lucide="trophy" style="width:14px; height:14px; color:#ffb300;"></i>
             BEST: <span id="hudHighScore">0</span>
           </div>
         </div>
 
-        <!-- HUD Center: Gesture & Tracking Status -->
+        <!-- HUD Center: Gesture, Tracking & Speed/Sens Status -->
         <div class="hud-center">
           <div class="badge-row">
             <div id="gestureBadge" class="badge badge-idle">Tracking...</div>
             <div id="trackingBadge" class="badge badge-blade">Webcam Ready</div>
+            <div id="hudSpeedBadge" class="badge badge-speed">SLOW</div>
+            <div id="hudSensBadge" class="badge badge-sens">MED</div>
           </div>
         </div>
 
@@ -112,11 +132,40 @@
           <h1 class="game-title">FRUIT NINJA CVIP</h1>
           <p class="game-subtitle">Gesture-Controlled Dojo with Real-Time Computer Vision Tracking</p>
 
+          <!-- Campaign Progression Status -->
+          <div class="level-hud-box" style="width: 100%; justify-content: center; background: rgba(30, 18, 14, 0.85);">
+            <span class="level-badge-tag" style="color: var(--primary-gold);">
+              <i data-lucide="award" style="width: 16px; height: 16px;"></i>
+              <span id="menuProgressionStatus">Level Progression: Level 1 of 5 Unlocked</span>
+            </span>
+          </div>
+
           <!-- Mode Selector -->
           <div class="mode-selector">
-            <button class="mode-btn active" data-mode="classic">Classic (3 Lives)</button>
-            <button class="mode-btn" data-mode="arcade">Arcade (60s Frenzy)</button>
-            <button class="mode-btn" data-mode="zen">Zen (90s Pure)</button>
+            <button class="mode-btn active" data-mode="adventure">Level Adventure (5 Levels)</button>
+            <button class="mode-btn" data-mode="classic">Classic (Endless)</button>
+            <button class="mode-btn" data-mode="arcade">Arcade (60s)</button>
+            <button class="mode-btn" data-mode="zen">Zen (90s)</button>
+          </div>
+
+          <!-- Game Speed Setting (Slow is default!) -->
+          <div class="setting-row">
+            <span class="setting-label"><i data-lucide="gauge" style="width:16px; height:16px; color:var(--primary-gold);"></i> Game Speed:</span>
+            <div class="pill-group" id="speedPillGroup">
+              <button class="pill-btn active" data-speed="slow">Slow (Default)</button>
+              <button class="pill-btn" data-speed="normal">Normal</button>
+              <button class="pill-btn" data-speed="fast">Fast</button>
+            </div>
+          </div>
+
+          <!-- Hand Tracking Sensitivity Setting -->
+          <div class="setting-row">
+            <span class="setting-label"><i data-lucide="sliders" style="width:16px; height:16px; color:var(--primary-cyan);"></i> Hand Sensitivity:</span>
+            <div class="pill-group" id="sensPillGroup">
+              <button class="pill-btn" data-sens="low">Low</button>
+              <button class="pill-btn active" data-sens="medium">Medium</button>
+              <button class="pill-btn" data-sens="high">High</button>
+            </div>
           </div>
 
           <!-- Katana Theme Selector -->
@@ -148,13 +197,110 @@
             </div>
           </div>
 
-          <button id="btnStartGame" class="cta-button">
-            <i data-lucide="play"></i> ENTER DOJO
-          </button>
+          <div style="display: flex; gap: 0.75rem; width: 100%; justify-content: center;">
+            <button id="btnStartGame" class="cta-button" style="flex: 1;">
+              <i data-lucide="play"></i> <span id="btnStartGameText">START LEVEL 1</span>
+            </button>
+            <button id="btnOpenLevelSelect" class="btn-secondary">
+              <i data-lucide="grid"></i> LEVELS
+            </button>
+          </div>
 
           <div class="touchless-hint">
             <i data-lucide="sparkles" style="width:14px; height:14px;"></i>
             Or show 👍 (Thumbs Up) to camera to start touchlessly!
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= Level Selection Overlay ================= -->
+      <div id="levelSelectOverlay" class="stage-overlay hidden">
+        <div class="overlay-content" style="max-width: 680px;">
+          <h1 class="game-title" style="font-size: 2.2rem;">SELECT LEVEL</h1>
+          <p class="game-subtitle">Choose any unlocked level to play or replay</p>
+
+          <div class="levels-grid" id="levelsGridContainer">
+            <!-- Dynamically populated 5 level cards -->
+          </div>
+
+          <div style="display: flex; gap: 0.75rem; margin-top: 0.5rem;">
+            <button id="btnCloseLevelSelect" class="btn-secondary">
+              <i data-lucide="arrow-left"></i> BACK TO MENU
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= Level Completed Overlay ================= -->
+      <div id="levelCompletedOverlay" class="stage-overlay hidden">
+        <div class="overlay-content">
+          <div style="font-size: 3rem;">🎉</div>
+          <h1 class="game-title" style="background: linear-gradient(135deg, #00f5a0 0%, #00f2fe 100%); -webkit-background-clip: text;">LEVEL COMPLETED!</h1>
+          <p class="game-subtitle" id="lvlCompleteSub">Level 1 - Beginner Conquered!</p>
+
+          <div class="score-panel" style="padding: 0.6rem 2.2rem;">
+            <span class="score-label">Score Achieved</span>
+            <span id="lvlCompleteScore" class="score-value" style="font-size: 2.8rem;">15</span>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-card">
+              <span id="lvlCompleteTarget" class="stat-value">15</span>
+              <span class="stat-label">Target Score</span>
+            </div>
+            <div class="stat-card">
+              <span id="lvlCompleteCombos" class="stat-value">0x</span>
+              <span class="stat-label">Max Combo</span>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: center; width: 100%;">
+            <button id="btnNextLevel" class="cta-button" style="flex: 1; min-width: 200px;">
+              <i data-lucide="chevrons-right"></i> NEXT LEVEL
+            </button>
+            <button id="btnReplayLevel" class="btn-secondary">
+              <i data-lucide="rotate-ccw"></i> REPLAY
+            </button>
+            <button id="btnLevelSelectFromComplete" class="btn-secondary">
+              <i data-lucide="grid"></i> LEVELS
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= Final Victory Overlay (Level 5 Completed) ================= -->
+      <div id="victoryOverlay" class="stage-overlay hidden">
+        <div class="overlay-content">
+          <div class="victory-trophy">🏆</div>
+          <h1 class="game-title" style="background: linear-gradient(135deg, #ffd700 0%, #ff8a65 50%, #ff1744 100%); -webkit-background-clip: text;">NINJA MASTER!</h1>
+          <p class="game-subtitle">Congratulations! You have conquered all 5 Dojo Levels!</p>
+
+          <div class="score-panel" style="padding: 0.6rem 2.4rem;">
+            <span class="score-label">Final Level Score</span>
+            <span id="victoryScore" class="score-value" style="font-size: 3rem;">80</span>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-card">
+              <span class="stat-value" style="color: #00f5a0;">5 / 5</span>
+              <span class="stat-label">Levels Cleared</span>
+            </div>
+            <div class="stat-card">
+              <span id="victoryBestScore" class="stat-value" style="color: #ffb300;">0</span>
+              <span class="stat-label">Grand High Score</span>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: center; width: 100%;">
+            <button id="btnVictoryPlayAgain" class="cta-button" style="flex: 1; min-width: 200px;">
+              <i data-lucide="rotate-ccw"></i> PLAY AGAIN (LVL 1)
+            </button>
+            <button id="btnVictoryLevelSelect" class="btn-secondary">
+              <i data-lucide="grid"></i> LEVELS
+            </button>
+            <button id="btnVictoryMenu" class="btn-secondary">
+              <i data-lucide="home"></i> MAIN MENU
+            </button>
           </div>
         </div>
       </div>
@@ -189,9 +335,14 @@
             </div>
           </div>
 
-          <button id="btnRestartGame" class="cta-button">
-            <i data-lucide="rotate-ccw"></i> PLAY AGAIN
-          </button>
+          <div style="display: flex; gap: 0.75rem; width: 100%; justify-content: center;">
+            <button id="btnRestartGame" class="cta-button" style="flex: 1;">
+              <i data-lucide="rotate-ccw"></i> RETRY LEVEL
+            </button>
+            <button id="btnGameOverLevelSelect" class="btn-secondary">
+              <i data-lucide="grid"></i> LEVELS
+            </button>
+          </div>
 
           <div class="touchless-hint">
             <i data-lucide="sparkles" style="width:14px; height:14px;"></i>
@@ -205,11 +356,14 @@
         <div class="overlay-content">
           <h1 class="game-title">GAME PAUSED</h1>
           <p class="game-subtitle">Press 'P' or click resume to return to the dojo</p>
-          <div style="display:flex; gap:1rem;">
+          <div style="display:flex; gap:0.75rem; flex-wrap: wrap; justify-content: center;">
             <button id="btnResumeGame" class="cta-button">
               <i data-lucide="play"></i> RESUME
             </button>
-            <button id="btnQuitToMenu" class="hdr-btn" style="padding: 0.85rem 1.5rem; font-size:1rem;">
+            <button id="btnPauseRestart" class="btn-secondary">
+              <i data-lucide="rotate-ccw"></i> RESTART LEVEL
+            </button>
+            <button id="btnQuitToMenu" class="btn-secondary">
               <i data-lucide="home"></i> MAIN MENU
             </button>
           </div>
@@ -232,7 +386,7 @@
       <div class="telemetry-item">
         <i data-lucide="sparkle" style="width:16px; height:16px; color:#ffb300;"></i>
         <span>Kinematic Filter:</span>
-        <strong>Exponential Moving Average (EMA &alpha; = 0.75)</strong>
+        <strong>Adaptive EMA Jitter Suppression</strong>
       </div>
     </div>
   </main>

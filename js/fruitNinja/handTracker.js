@@ -18,12 +18,14 @@ class HandTracker {
     this.fps = 0;
     this.latencyMs = 0;
 
-    // Smoothing parameters (Exponential Moving Average)
-    this.smoothingAlpha = 0.75; // Higher = more responsive, lower = smoother
+    // Adaptive Smoothing parameters (Dual-state Exponential Moving Average)
+    this.sensitivity = 'medium'; // 'low', 'medium', 'high'
+    this.smoothingAlpha = 0.38; // Base smoothing factor for slow/still movements
+    this.currentGameSpeed = 'slow'; // Default speed
 
     // Blade trails (Hand 1 and Hand 2)
-    this.maxTrailLength = 10;
-    this.minSliceVelocity = 280; // px/sec required to register a slice cut
+    this.maxTrailLength = 12;
+    this.minSliceVelocity = 140; // px/sec required to register a slice cut (responsive & smooth)
     this.bladeTrails = {
       primary: [],
       secondary: []
@@ -60,6 +62,30 @@ class HandTracker {
   setCanvasDimensions(width, height) {
     this.canvasWidth = width;
     this.canvasHeight = height;
+  }
+
+  setSensitivity(level) {
+    this.sensitivity = level;
+    this.updateVelocityThreshold();
+    this.notifyStatus(`Tracking sensitivity: ${level.toUpperCase()}`);
+  }
+
+  setGameSpeed(speed) {
+    this.currentGameSpeed = speed;
+    this.updateVelocityThreshold();
+  }
+
+  updateVelocityThreshold() {
+    // Adaptive slice threshold: slower game speeds and higher sensitivity require lower threshold
+    let baseVel = 140;
+    if (this.currentGameSpeed === 'slow') baseVel = 130;
+    else if (this.currentGameSpeed === 'normal') baseVel = 165;
+    else if (this.currentGameSpeed === 'fast') baseVel = 210;
+
+    if (this.sensitivity === 'high') baseVel -= 25;
+    else if (this.sensitivity === 'low') baseVel += 25;
+
+    this.minSliceVelocity = Math.max(90, baseVel);
   }
 
   /**
@@ -205,6 +231,7 @@ class HandTracker {
 
   /**
    * Process single hand landmarks into screen coordinate blade trajectory
+   * Features adaptive dual-state EMA jitter suppression and smooth velocity computation.
    */
   processSingleHand(landmarks, handKey, dt) {
     // Landmark 8 is Index Finger Tip
@@ -221,20 +248,33 @@ class HandTracker {
     if (trail.length === 0) {
       blade.x = targetX;
       blade.y = targetY;
+      blade.vx = 0;
+      blade.vy = 0;
+      blade.speed = 0;
     } else {
-      // Exponential Moving Average (EMA) smoothing: prevents jitter while retaining instantaneous response
-      blade.x = this.smoothingAlpha * targetX + (1 - this.smoothingAlpha) * blade.x;
-      blade.y = this.smoothingAlpha * targetY + (1 - this.smoothingAlpha) * blade.y;
+      // Calculate delta to raw input
+      const rawDist = Math.hypot(targetX - blade.x, targetY - blade.y);
+
+      // Adaptive dual-state smoothing:
+      // High filter (low alpha) for small jitter movements; high alpha for fast slashes
+      const baseAlpha = this.sensitivity === 'high' ? 0.46 : (this.sensitivity === 'low' ? 0.28 : 0.36);
+      const dynamicBoost = rawDist > 8 ? Math.min(0.46, (rawDist - 8) / 50) : 0;
+      const alpha = Math.min(0.85, baseAlpha + dynamicBoost);
+
+      blade.x = alpha * targetX + (1 - alpha) * blade.x;
+      blade.y = alpha * targetY + (1 - alpha) * blade.y;
     }
 
-    // Velocity computation
+    // Velocity computation with low-pass stability
     if (dt > 0.001) {
       const lastPoint = trail[trail.length - 1] || { x: blade.x, y: blade.y };
       const dx = blade.x - lastPoint.x;
       const dy = blade.y - lastPoint.y;
       blade.vx = dx / dt;
       blade.vy = dy / dt;
-      blade.speed = Math.sqrt(blade.vx * blade.vx + blade.vy * blade.vy);
+      const currentSpeed = Math.hypot(blade.vx, blade.vy);
+      // Smooth speed to prevent jitter false triggers
+      blade.speed = 0.7 * currentSpeed + 0.3 * (blade.speed || 0);
     }
 
     // Slicing condition: Speed exceeds velocity threshold

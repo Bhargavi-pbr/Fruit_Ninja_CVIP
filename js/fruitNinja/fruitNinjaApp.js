@@ -1,6 +1,12 @@
 /**
  * FruitNinjaApp.js - Master Application Controller for Fruit Ninja CVIP
  * Connects GameEngine, HandTracker, FruitRenderer, SoundEffects, and CVIP Pipeline.
+ * Features:
+ * - 5-Level Progression & Level Selection System
+ * - Smooth & Slow Gameplay with Game Speed Toggle (Slow [Default], Normal, Fast)
+ * - Hand Tracking Sensitivity Control (Low, Medium, High)
+ * - Level Completed & Grandmaster Victory screens
+ * - Touchless Gestures (Thumbs Up Start/Restart, Fist Shield Defuse, Open Palm Freeze)
  */
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -12,7 +18,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // HUD Elements
   const hudScore = document.getElementById('hudScore');
+  const hudTargetScore = document.getElementById('hudTargetScore');
   const hudHighScore = document.getElementById('hudHighScore');
+  const hudLevelBox = document.getElementById('hudLevelBox');
+  const hudLevelBadge = document.getElementById('hudLevelBadge');
+  const hudProgressWrapper = document.getElementById('hudProgressWrapper');
+  const hudProgressPercent = document.getElementById('hudProgressPercent');
+  const hudProgressFill = document.getElementById('hudProgressFill');
+  const hudSpeedBadge = document.getElementById('hudSpeedBadge');
+  const hudSensBadge = document.getElementById('hudSensBadge');
   const hudLivesContainer = document.getElementById('hudLivesContainer');
   const hudTimerContainer = document.getElementById('hudTimerContainer');
   const hudTimer = document.getElementById('hudTimer');
@@ -25,33 +39,67 @@ document.addEventListener('DOMContentLoaded', async () => {
   const gameOverOverlay = document.getElementById('gameOverOverlay');
   const pauseOverlay = document.getElementById('pauseOverlay');
   const studioModal = document.getElementById('studioModal');
+  const levelSelectOverlay = document.getElementById('levelSelectOverlay');
+  const levelCompletedOverlay = document.getElementById('levelCompletedOverlay');
+  const victoryOverlay = document.getElementById('victoryOverlay');
+  const levelsGridContainer = document.getElementById('levelsGridContainer');
 
-  // Buttons
+  // Menu Elements
+  const menuProgressionStatus = document.getElementById('menuProgressionStatus');
+  const btnStartGameText = document.getElementById('btnStartGameText');
   const btnStartGame = document.getElementById('btnStartGame');
+  const btnOpenLevelSelect = document.getElementById('btnOpenLevelSelect');
+  const btnCloseLevelSelect = document.getElementById('btnCloseLevelSelect');
   const btnRestartGame = document.getElementById('btnRestartGame');
+  const btnGameOverLevelSelect = document.getElementById('btnGameOverLevelSelect');
   const btnResumeGame = document.getElementById('btnResumeGame');
+  const btnPauseRestart = document.getElementById('btnPauseRestart');
   const btnQuitToMenu = document.getElementById('btnQuitToMenu');
   const btnToggleCamera = document.getElementById('btnToggleCamera');
   const btnToggleAudio = document.getElementById('btnToggleAudio');
   const btnOpenStudio = document.getElementById('btnOpenStudio');
   const btnCloseStudio = document.getElementById('btnCloseStudio');
+
+  // Level Complete & Victory Elements
+  const btnNextLevel = document.getElementById('btnNextLevel');
+  const btnReplayLevel = document.getElementById('btnReplayLevel');
+  const btnLevelSelectFromComplete = document.getElementById('btnLevelSelectFromComplete');
+  const lvlCompleteSub = document.getElementById('lvlCompleteSub');
+  const lvlCompleteScore = document.getElementById('lvlCompleteScore');
+  const lvlCompleteTarget = document.getElementById('lvlCompleteTarget');
+  const lvlCompleteCombos = document.getElementById('lvlCompleteCombos');
+
+  const btnVictoryPlayAgain = document.getElementById('btnVictoryPlayAgain');
+  const btnVictoryLevelSelect = document.getElementById('btnVictoryLevelSelect');
+  const btnVictoryMenu = document.getElementById('btnVictoryMenu');
+  const victoryScore = document.getElementById('victoryScore');
+  const victoryBestScore = document.getElementById('victoryBestScore');
+
+  // Selectors
   const modeSelectBtns = document.querySelectorAll('.mode-btn');
   const bladeThemeBtns = document.querySelectorAll('.theme-btn');
+  const speedPillBtns = document.querySelectorAll('#speedPillGroup .pill-btn');
+  const sensPillBtns = document.querySelectorAll('#sensPillGroup .pill-btn');
 
   // Stats in GameOver
   const finalScoreEl = document.getElementById('finalScore');
-  const finalHighScoreEl = document.getElementById('finalHighScore');
   const statFruitsSlicedEl = document.getElementById('statFruitsSliced');
   const statMaxComboEl = document.getElementById('statMaxCombo');
   const statAccuracyEl = document.getElementById('statAccuracy');
   const statBombsDefusedEl = document.getElementById('statBombsDefused');
 
-  // Initialize Game Engine
+  // Initialize Game Engine & Hand Tracker
   window.gameEngine.init(gameCanvas);
   hudHighScore.innerText = window.gameEngine.highScore;
 
   // Initialize Hand Tracker Mouse Simulator
   window.handTracker.setupMouseControls(gameCanvas);
+  window.handTracker.setGameSpeed(window.gameEngine.gameSpeed);
+
+  // Sync initial UI state from persistence
+  syncSpeedButtons(window.gameEngine.gameSpeed);
+  syncSensButtons(window.handTracker.sensitivity);
+  updateMenuStatus();
 
   // Status and Telemetry Callback
   window.handTracker.onStatusChange = (statusMsg) => {
@@ -81,24 +129,36 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (gesture === 'Thumbs Up' && now > thumbsUpCooldown) {
       thumbsUpCooldown = now + 1800;
       if (window.gameEngine.state === 'MENU' || window.gameEngine.state === 'GAMEOVER') {
-        window.gameEngine.startNewGame();
-        menuOverlay.classList.add('hidden');
-        gameOverOverlay.classList.add('hidden');
+        hideAllOverlays();
+        window.gameEngine.startLevel(window.gameEngine.currentLevel || 1);
+      } else if (window.gameEngine.state === 'LEVEL_COMPLETED') {
+        hideAllOverlays();
+        window.gameEngine.nextLevel();
+      } else if (window.gameEngine.state === 'VICTORY') {
+        hideAllOverlays();
+        window.gameEngine.startLevel(1);
       }
     }
   };
 
+  function hideAllOverlays() {
+    menuOverlay.classList.add('hidden');
+    gameOverOverlay.classList.add('hidden');
+    pauseOverlay.classList.add('hidden');
+    levelSelectOverlay.classList.add('hidden');
+    levelCompletedOverlay.classList.add('hidden');
+    victoryOverlay.classList.add('hidden');
+  }
+
   // Game Engine State Callback
   window.gameEngine.onStateChange = (state, reason) => {
     if (state === 'PLAYING') {
-      menuOverlay.classList.add('hidden');
-      gameOverOverlay.classList.add('hidden');
-      pauseOverlay.classList.add('hidden');
+      hideAllOverlays();
     } else if (state === 'PAUSED') {
       pauseOverlay.classList.remove('hidden');
     } else if (state === 'GAMEOVER') {
+      hideAllOverlays();
       finalScoreEl.innerText = window.gameEngine.score;
-      finalHighScoreEl.innerText = window.gameEngine.highScore;
       statFruitsSlicedEl.innerText = window.gameEngine.totalFruitsSliced;
       statMaxComboEl.innerText = `${window.gameEngine.maxComboAchieved}x`;
       statBombsDefusedEl.innerText = window.gameEngine.totalBombsDefused;
@@ -110,20 +170,72 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       gameOverOverlay.classList.remove('hidden');
     } else if (state === 'MENU') {
+      hideAllOverlays();
       menuOverlay.classList.remove('hidden');
-      gameOverOverlay.classList.add('hidden');
-      pauseOverlay.classList.add('hidden');
+      updateMenuStatus();
+    } else if (state === 'LEVEL_COMPLETED') {
+      hideAllOverlays();
+      levelCompletedOverlay.classList.remove('hidden');
+    } else if (state === 'VICTORY') {
+      hideAllOverlays();
+      victoryOverlay.classList.remove('hidden');
     }
     updateHUDMode();
   };
 
-  // Score and Lives Update Callback
+  // Level Completed Callback
+  window.gameEngine.onLevelCompleted = (engine, curLvl, nextLvl) => {
+    const cfg = engine.getCurrentLevelConfig();
+    lvlCompleteSub.innerText = `Level ${curLvl} - ${cfg.name} Conquered!`;
+    lvlCompleteScore.innerText = engine.score;
+    lvlCompleteTarget.innerText = cfg.targetScore;
+    lvlCompleteCombos.innerText = `${engine.maxComboAchieved}x`;
+
+    if (btnNextLevel) {
+      btnNextLevel.innerHTML = `<i data-lucide="chevrons-right"></i> NEXT LEVEL (${nextLvl})`;
+    }
+    if (window.lucide) window.lucide.createIcons();
+    updateMenuStatus();
+  };
+
+  // Grand Victory Callback
+  window.gameEngine.onVictory = (engine) => {
+    victoryScore.innerText = engine.score;
+    victoryBestScore.innerText = engine.highScore;
+    updateMenuStatus();
+  };
+
+  // Score and HUD Update Callback
   window.gameEngine.onScoreUpdate = (engine) => {
     hudScore.innerText = engine.score;
     hudHighScore.innerText = engine.highScore;
 
+    // Progress Bar and Target
+    if (engine.mode === 'adventure') {
+      const cfg = engine.getCurrentLevelConfig();
+      hudTargetScore.style.display = 'inline';
+      hudTargetScore.innerText = `/ ${cfg.targetScore}`;
+      hudProgressWrapper.style.display = 'flex';
+
+      const pct = engine.getProgressPercent();
+      hudProgressPercent.innerText = `${pct}%`;
+      hudProgressFill.style.width = `${pct}%`;
+
+      hudLevelBox.style.display = 'flex';
+      hudLevelBadge.innerHTML = `<i data-lucide="shield" style="width:14px; height:14px;"></i> LVL ${engine.currentLevel}: ${cfg.name.toUpperCase()}`;
+    } else {
+      hudTargetScore.style.display = 'none';
+      hudProgressWrapper.style.display = 'none';
+      hudLevelBox.style.display = 'none';
+    }
+
+    // Render Speed Badge
+    if (hudSpeedBadge) {
+      hudSpeedBadge.innerText = engine.gameSpeed.toUpperCase();
+    }
+
     // Render Lives (Shurikens / Hearts)
-    if (engine.mode === 'classic') {
+    if (engine.mode === 'classic' || engine.mode === 'adventure') {
       hudLivesContainer.innerHTML = '';
       for (let i = 0; i < engine.maxLives; i++) {
         const star = document.createElement('span');
@@ -132,16 +244,70 @@ document.addEventListener('DOMContentLoaded', async () => {
         hudLivesContainer.appendChild(star);
       }
     }
+    if (window.lucide) window.lucide.createIcons();
   };
 
   function updateHUDMode() {
-    if (window.gameEngine.mode === 'classic') {
-      hudLivesContainer.style.display = 'flex';
-      hudTimerContainer.style.display = 'none';
-    } else {
+    if (window.gameEngine.mode === 'arcade' || window.gameEngine.mode === 'zen') {
       hudLivesContainer.style.display = 'none';
       hudTimerContainer.style.display = 'flex';
+      hudProgressWrapper.style.display = 'none';
+      hudLevelBox.style.display = 'none';
+    } else {
+      hudLivesContainer.style.display = 'flex';
+      hudTimerContainer.style.display = 'none';
+      if (window.gameEngine.mode === 'adventure') {
+        hudProgressWrapper.style.display = 'flex';
+        hudLevelBox.style.display = 'flex';
+      }
     }
+  }
+
+  function updateMenuStatus() {
+    const unlocked = window.gameEngine.unlockedLevel || 1;
+    if (menuProgressionStatus) {
+      menuProgressionStatus.innerText = `Level Progression: Level ${unlocked} of 5 Unlocked`;
+    }
+    if (btnStartGameText) {
+      btnStartGameText.innerText = `PLAY LEVEL ${window.gameEngine.currentLevel || 1}`;
+    }
+  }
+
+  // Render Level Select Cards
+  function renderLevelCards() {
+    if (!levelsGridContainer) return;
+    levelsGridContainer.innerHTML = '';
+
+    const unlocked = window.gameEngine.unlockedLevel || 1;
+    const current = window.gameEngine.currentLevel || 1;
+
+    window.LEVEL_CONFIGS.forEach((cfg) => {
+      const isUnlocked = cfg.level <= unlocked;
+      const isCurrent = cfg.level === current;
+      const bestScore = window.gameEngine.getLevelBestScore(cfg.level);
+
+      const card = document.createElement('div');
+      card.className = `level-card ${isUnlocked ? 'unlocked' : 'locked'} ${isCurrent ? 'current' : ''}`;
+
+      card.innerHTML = `
+        <div class="level-number-badge">${cfg.level}</div>
+        <div class="level-card-name">${cfg.name}</div>
+        <div class="level-target-label">Target: ${cfg.targetScore} pts</div>
+        <div class="level-best-label">Best: ${bestScore}</div>
+        <div class="level-status-pill ${isUnlocked ? 'play' : 'locked'}">
+          ${isUnlocked ? (isCurrent ? 'CURRENT' : 'PLAY') : 'LOCKED 🔒'}
+        </div>
+      `;
+
+      if (isUnlocked) {
+        card.addEventListener('click', () => {
+          hideAllOverlays();
+          window.gameEngine.startLevel(cfg.level);
+        });
+      }
+
+      levelsGridContainer.appendChild(card);
+    });
   }
 
   // Camera Initialization
@@ -165,7 +331,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (window.lucide) window.lucide.createIcons();
   }
 
-  // Attempt auto-activation of camera (non-blocking)
   activateCamera().catch(() => {});
 
   // Camera Toggle Button
@@ -202,9 +367,48 @@ document.addEventListener('DOMContentLoaded', async () => {
       const mode = btn.getAttribute('data-mode');
       window.gameEngine.setMode(mode);
       updateHUDMode();
+      updateMenuStatus();
       if (window.soundEffects) window.soundEffects.playClick();
     });
   });
+
+  // Speed Control Buttons (Slow [Default], Normal, Fast)
+  speedPillBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const speed = btn.getAttribute('data-speed');
+      window.gameEngine.setGameSpeed(speed);
+      syncSpeedButtons(speed);
+      if (window.soundEffects) window.soundEffects.playClick();
+    });
+  });
+
+  function syncSpeedButtons(speed) {
+    speedPillBtns.forEach(b => {
+      b.classList.toggle('active', b.getAttribute('data-speed') === speed);
+    });
+    if (hudSpeedBadge) {
+      hudSpeedBadge.innerText = speed.toUpperCase();
+    }
+  }
+
+  // Hand Sensitivity Buttons (Low, Medium, High)
+  sensPillBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const sens = btn.getAttribute('data-sens');
+      window.handTracker.setSensitivity(sens);
+      syncSensButtons(sens);
+      if (window.soundEffects) window.soundEffects.playClick();
+    });
+  });
+
+  function syncSensButtons(sens) {
+    sensPillBtns.forEach(b => {
+      b.classList.toggle('active', b.getAttribute('data-sens') === sens);
+    });
+    if (hudSensBadge) {
+      hudSensBadge.innerText = sens.toUpperCase().slice(0, 3);
+    }
+  }
 
   // Blade Theme Buttons
   bladeThemeBtns.forEach(btn => {
@@ -217,20 +421,79 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
-  // Start & Restart Buttons
+  // Start & Navigation Buttons
   btnStartGame.addEventListener('click', () => {
-    window.gameEngine.startNewGame();
+    hideAllOverlays();
+    window.gameEngine.startLevel(window.gameEngine.currentLevel || 1);
+  });
+
+  btnOpenLevelSelect.addEventListener('click', () => {
+    renderLevelCards();
+    levelSelectOverlay.classList.remove('hidden');
+    if (window.soundEffects) window.soundEffects.playClick();
+  });
+
+  btnCloseLevelSelect.addEventListener('click', () => {
+    levelSelectOverlay.classList.add('hidden');
+    if (window.soundEffects) window.soundEffects.playClick();
+  });
+
+  btnNextLevel.addEventListener('click', () => {
+    hideAllOverlays();
+    window.gameEngine.nextLevel();
+  });
+
+  btnReplayLevel.addEventListener('click', () => {
+    hideAllOverlays();
+    window.gameEngine.restartLevel();
+  });
+
+  btnLevelSelectFromComplete.addEventListener('click', () => {
+    levelCompletedOverlay.classList.add('hidden');
+    renderLevelCards();
+    levelSelectOverlay.classList.remove('hidden');
   });
 
   btnRestartGame.addEventListener('click', () => {
-    window.gameEngine.startNewGame();
+    hideAllOverlays();
+    window.gameEngine.restartLevel();
+  });
+
+  btnGameOverLevelSelect.addEventListener('click', () => {
+    gameOverOverlay.classList.add('hidden');
+    renderLevelCards();
+    levelSelectOverlay.classList.remove('hidden');
   });
 
   btnResumeGame.addEventListener('click', () => {
     window.gameEngine.pauseGame();
   });
 
+  btnPauseRestart.addEventListener('click', () => {
+    hideAllOverlays();
+    window.gameEngine.restartLevel();
+  });
+
   btnQuitToMenu.addEventListener('click', () => {
+    hideAllOverlays();
+    window.gameEngine.state = 'MENU';
+    if (window.gameEngine.onStateChange) window.gameEngine.onStateChange('MENU');
+  });
+
+  // Victory Overlay Buttons
+  btnVictoryPlayAgain.addEventListener('click', () => {
+    hideAllOverlays();
+    window.gameEngine.startLevel(1);
+  });
+
+  btnVictoryLevelSelect.addEventListener('click', () => {
+    victoryOverlay.classList.add('hidden');
+    renderLevelCards();
+    levelSelectOverlay.classList.remove('hidden');
+  });
+
+  btnVictoryMenu.addEventListener('click', () => {
+    hideAllOverlays();
     window.gameEngine.state = 'MENU';
     if (window.gameEngine.onStateChange) window.gameEngine.onStateChange('MENU');
   });
